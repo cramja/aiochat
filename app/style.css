@@ -1,0 +1,68 @@
+body {
+  margin: 0px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.wrapper {
+  margin: 0px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+#chatPane {
+  height: 100vh;
+  flex-basis: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+
+#messagePane {
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column-reverse;
+  height: 100%;
+}
+
+#messagePane::-webkit-scrollbar {
+  display: none;
+}
+
+#messagePane > div {
+  margin: 3px 0px 0px 0px;
+}
+
+.message {
+  overflow-x: hidden;
+  max-width: 80%;
+  padding: 8px;
+  border-radius: 15px;
+  display: inline-block;
+  margin: 0px;
+}
+
+.message > p {
+  margin: 0px;
+}
+
+.messageOurs {
+  background-color: lightblue;
+}
+
+.messageTheirs {
+  float: right;
+  background-color: lightgray;
+}
+
+.messageMeta {
+  font-size: x-small;
+  text-align: right;
+}
+
+#chatTextarea {
+  height: 80px;
+  width: 100%;
+  resize: none;
+}
+
