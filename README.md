@@ -16,6 +16,11 @@ ____________
 
 
 **To Try**
-- prosemirror
-- autocomplete for commands
+- fancy markdown editing
+  - prosemirror
+  - slate
+    - prism for syntax highlighting
+    - autocomplete for commands [see example](https://www.slatejs.org/examples/mentions)
+- postgres for persistence
 - redis for message q
+  - asyncio redis
