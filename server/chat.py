@@ -15,6 +15,8 @@ from asyncio import create_task
 from asyncio import gather
 import uvloop
 
+from helpers import to_dict
+
 LOG = logging.getLogger(__name__)
 
 
@@ -39,7 +41,7 @@ async def get_message_history(request):
     pgpool = request.app['pgpool']
     async with pgpool.acquire() as conn:
         records = await conn.fetch('SELECT create_time, value, client_id FROM messages')
-    return web.json_response(data=[dict(r) for r in records])
+    return web.json_response(data=[to_dict(r) for r in records])
 
 
 async def post_message(request):

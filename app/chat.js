@@ -7,14 +7,22 @@ function randomString(len) {
   return str.join('');
 }
 
+var tabId = sessionStorage.tabId ? sessionStorage.tabId : sessionStorage.tabId = randomString(8);
 
 
-function ChatApp({host='ws://localhost:8000', debug=true, clientId=randomString(8)}={}) {
+
+function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
   if (!(this instanceof ChatApp)) {
     throw 'ChatApp requires new keyword';
   }
 
   this.clientId = clientId;
+  if (!this.clientId) {
+    this.clientId = tabId;
+  }
+  if (!this.clientId) {
+    this.clientId = randomString(8);
+  }
 
 
   function log(m) {
@@ -97,28 +105,33 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=randomString(
     }
   }
 
+  this.createMessageElement = ({cid, text}) => {
+    const self = this.clientId === cid;
+    let outerDiv = document.createElement('div');
+    let innerDiv = document.createElement('div');
+    let textP = document.createElement('p');
+
+    outerDiv.appendChild(innerDiv);
+    innerDiv.appendChild(textP);
+    if (!self) {
+      let metaP = document.createElement('p');
+      innerDiv.appendChild(metaP);
+      metaP.classList.add('messageMeta');
+      metaP.innerText = cid;
+    }
+    textP.innerText = text;
+    innerDiv.classList.add('message');
+    innerDiv.classList.add(self ? 'messageOurs' : 'messageTheirs');
+    messagePane.prepend(outerDiv);
+    return outerDiv;
+  }
+
   this.onWsMessage = () => {
     try {
       let message = JSON.parse(event.data);
       switch (message.type) {
         case 'create_message': {
-          const self = this.clientId === message.cid;
-          let outerDiv = document.createElement('div');
-          let innerDiv = document.createElement('div');
-          let textP = document.createElement('p');
-
-          outerDiv.appendChild(innerDiv);
-          innerDiv.appendChild(textP);
-          if (!self) {
-            let metaP = document.createElement('p');
-            innerDiv.appendChild(metaP);
-            metaP.classList.add('messageMeta');
-            metaP.innerText = message.cid;
-          }
-          textP.innerText = message.text;
-          innerDiv.classList.add('message');
-          innerDiv.classList.add(self ? 'messageOurs' : 'messageTheirs');
-          messagePane.prepend(outerDiv);
+          let outerDiv = this.createMessageElement(message);
           outerDiv.scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
           break;
         }
@@ -155,13 +168,26 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=randomString(
         args = val.substring(1).trim().split(/\s+/);
         this.sendWsMessage({type: 'execute_command', args});
       } else {
-        this.sendWsMessage({type: 'create_message', text: val});
+        this.sendWsMessage({type: 'create_message', text: val.trim()});
       }
       chatTextarea.value = '';
     }
   });
 
-  this.openWs(this.wsOpenAttempt)();
+  this.fetchHistory = () => {
+    fetch('/api/chat/history')
+      .then(r => r.json())
+      .then(r => {
+        let outerDiv;
+        for (message of r) {
+          outerDiv = this.createMessageElement({text: message.value, cid: message.client_id});
+        }
+        outerDiv.scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
+      }).finally(() => this.openWs(this.wsOpenAttempt)());
+  }
+
+  this.fetchHistory();
+
 }
 
 const app = new ChatApp();
