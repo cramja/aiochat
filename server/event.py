@@ -2,8 +2,10 @@ from abc import ABC
 from dataclasses import asdict
 from dataclasses import dataclass
 from time import time as time_s
-import json
+from typing import Optional
 from uuid import uuid4
+import json
+
 
 
 def time_m():
@@ -37,17 +39,44 @@ class MessageEvent(Event):
     def of(cls, client_id, message):
         return cls(str(uuid4()), time_m(), client_id, message)
 
+class WsMessageEvent(MessageEvent):
+    pass
+
 
 @dataclass
 class IntentEvent(Event):
     message: str
     intent: str
+    args: list
+    kwargs: dict
 
     @classmethod
-    def of(cls, client_id, message):
-        return cls(str(uuid4()), time_m(), client_id, message, message)
-        
+    def fromMessage(cls, event: MessageEvent) -> Optional['IntentEvent']:
+        message = event.message.strip()
+        parts = message.split()
+        if len(parts) == 0 or not parts[0].isupper():
+            return None
+        args = []
+        kwargs = {}
+        for arg in parts[1:]:
+            if '=' in arg:
+                kv = arg.split('=')
+                kwargs[kv[0]] = kv[1]
+            else:
+                args.append(arg)
+        return cls(str(uuid4()), time_m(), event.message, event.client_id, parts[0], args, kwargs)
 
+
+@dataclass
+class LifecycleEvent(Event):
+    phase: str
+
+    @classmethod
+    def of(cls, client_id, phase):
+        return cls(str(uuid4()), time_m(), client_id, phase)
+
+
+# TODO: maintain this
 _events = {
     MessageEvent.__name__: MessageEvent,
     IntentEvent.__name__: IntentEvent

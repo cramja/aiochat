@@ -42,16 +42,24 @@ class TranslatorBot(Bot):
     def __init__(self):
         self.client_id = 'translator_bot'
     
-    @subscribe(kind="MessageEvent")
+    @subscribe(kind="WsMessageEvent")
     async def on_message(self, event):
-        if event.message.isupper():
-            await self._dispatch._submit(IntentEvent.of(self.client_id, event.message))
+        intent = IntentEvent.fromMessage(event)
+        if intent:
+            await self._dispatch.submit(intent)
+        elif len(event.message.strip()) > 0:
+            await self._dispatch.submit(MessageEvent.of(event.client_id, event.message.strip()))
+
 
     @subscribe(intent="START")
-    async def on_start_q(self, event):
-        bot = QuestionBot()
-        bot.init(self._dispatch)
-        await self._dispatch.submit(MessageEvent.of(self.client_id, "created questions bot"))
+    async def on_start(self, event):
+        print(event)
+        if event.args and event.args[0] == 'questions':
+            bot = QuestionBot()
+            bot.init(self._dispatch)
+            await self._dispatch.submit(MessageEvent.of(self.client_id, "created questions bot"))
+        else:
+            await self._dispatch.submit(MessageEvent.of(self.client_id, f"unknown start arg: {event.args}"))
 
 
 class QuestionBot(Bot):

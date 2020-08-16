@@ -25,3 +25,7 @@ ____________
 - postgres for persistence
 - redis for message q
   - asyncio redis
+
+- AIO chat
+  - intent capturing & training game
+  

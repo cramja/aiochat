@@ -86,6 +86,10 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
 
   this.onWsOpen = () => {
     log(`connected after ${this.wsOpenAttempt} attempts`);
+    let textarea = document.getElementById('chatTextarea');
+    textarea.disabled = false;
+    textarea.placeholder = '';
+    textarea.focus();
     this.sendWsMessage({type: 'open', clientId: this.clientId});
     while(this.queue.length > 0) {
       webSocket.send(this.queue[0]);
@@ -96,6 +100,9 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
 
   this.onWsClose = () => {
     log("closed socket");
+    let textarea = document.getElementById('chatTextarea');
+    textarea.disabled = true;
+    textarea.placeholder = 'reconnecting...';
     if (this.ws) {
       this.ws = null;
       this.openWs(0)();

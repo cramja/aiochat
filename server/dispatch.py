@@ -87,7 +87,12 @@ class Dispatcher:
         LOG.debug(f'matched: {names}')
         LOG.debug(f'available: {[type(b) for b in self._bots]}')
         LOG.debug(f'available matched: {_names}')
-        results = await gather(*coroutines)
-        for result in results:
+        
+        results = await gather(*coroutines, return_exceptions=True)    
+
+        for idx, result in enumerate(results):
             if isinstance(result, Event):
                 await self.submit(result)
+            elif isinstance(result, Exception):
+                LOG.warning(f'error in gather, {_names[idx]} {e}')
+
