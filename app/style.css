@@ -82,5 +82,10 @@ body {
   height: 80px;
   width: 100%;
   resize: none;
+  background-color: var(--cultured-2);
+}
+
+#chatTextarea:focus {
+  outline-width: 0px;
 }
 

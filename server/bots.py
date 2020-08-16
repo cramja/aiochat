@@ -16,18 +16,12 @@ class Bot(abc.ABC):
         self._submit = None
 
     def init(self, dispatcher):
-        self._register = dispatcher.register
-        self._submit = dispatcher.submit
-        self._unregister = dispatcher.unregister
-        self._dispatcher = dispatcher
-        dispatcher.register(self)
+        self._dispatch = dispatcher
+        self._dispatch.register(self)
 
     def teardown(self):
         self._unregister(self)
-        self._register = None
-        self._submit = None
-        self._unregister = None
-        self._dispatcher = None
+        self._dispatch = None
 
 
 class HistoryBot(Bot):
@@ -51,13 +45,13 @@ class TranslatorBot(Bot):
     @subscribe(kind="MessageEvent")
     async def on_message(self, event):
         if event.message.isupper():
-            await self._submit(IntentEvent.of(self.client_id, event.message))
+            await self._dispatch._submit(IntentEvent.of(self.client_id, event.message))
 
-    @subscribe(intent="START_Q")
+    @subscribe(intent="START")
     async def on_start_q(self, event):
         bot = QuestionBot()
-        bot.init(self._dispatcher)
-        await self._submit(MessageEvent.of(self.client_id, "created questions bot"))
+        bot.init(self._dispatch)
+        await self._dispatch.submit(MessageEvent.of(self.client_id, "created questions bot"))
 
 
 class QuestionBot(Bot):
@@ -69,7 +63,7 @@ class QuestionBot(Bot):
     
     @subscribe(intent='ASK')
     async def ask(self, event):
-        await self._submit(MessageEvent.of(self.client_id, QuestionBot._QUESTION_SETS['wwwww'][self.question_idx]))
+        await self._dispatch.submit(MessageEvent.of(self.client_id, QuestionBot._QUESTION_SETS['wwwww'][self.question_idx]))
         self.question_idx += 1
         if self.question_idx == len(QuestionBot._QUESTION_SETS['wwwww']):
             self.teardown()

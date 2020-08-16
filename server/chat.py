@@ -60,7 +60,7 @@ class WsBot(Bot):
                         if payload['type'] == 'open' and self.client_id is None:
                             self.client_id = payload['clientId']
                         elif payload['type'] == 'create_message' and self.client_id is not None:
-                            await self._submit(MessageEvent.of(self.client_id, payload['text']))
+                            await self._dispatch.submit(MessageEvent.of(self.client_id, payload['text']))
                     except Exception as e:
                         print(f'error processing message: {msg}')
                         print(e)
