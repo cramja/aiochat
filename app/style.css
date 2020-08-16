@@ -1,18 +1,34 @@
+:root {
+  /* https://coolors.co */
+  --cultured: #f8f9faff;
+  --cultured-2: #e9ecefff;
+  --gainsboro: #dee2e6ff;
+  --light-gray: #ced4daff;
+  --cadet-blue-crayola: #adb5bdff;
+  --slate-gray: #6c757dff;
+  --davys-grey: #495057ff;
+  --gunmetal: #343a40ff;
+  --charleston-green: #212529ff;
+}
+
 body {
   margin: 0px;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--charleston-green);
 }
+
 
 .wrapper {
   margin: 0px;
   display: flex;
   flex-direction: row;
   justify-content: space-around;
+  background-color: var(--slate-gray);
 }
 
 #chatPane {
   height: 100vh;
-  flex-basis: 600px;
+  flex-basis: 800px;
   display: flex;
   flex-direction: column;
 }
@@ -23,6 +39,7 @@ body {
   display: flex;
   flex-direction: column-reverse;
   height: 100%;
+  background-color: var(--davys-grey);
 }
 
 #messagePane::-webkit-scrollbar {

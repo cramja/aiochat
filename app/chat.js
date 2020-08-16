@@ -7,8 +7,25 @@ function randomString(len) {
   return str.join('');
 }
 
-var tabId = sessionStorage.tabId ? sessionStorage.tabId : sessionStorage.tabId = randomString(8);
+function hash(s) {
+  var hash = 0, i, chr;
+    for (i = 0; i < s.length; i++) {
+      chr   = s.charCodeAt(i);
+      hash  = ((hash << 5) - hash) + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+}
 
+function colorOf(s) {
+  var palette = ["ffadad","ffd6a5","F7FF0A","caffbf","9bf6ff","a0c4ff","bdb2ff","ffc6ff"];
+  let idx = Math.abs(hash(s)) % palette.length;
+  console.log(hash(s));
+  return "#" + palette[idx];
+}
+
+
+var tabId = sessionStorage.tabId ? sessionStorage.tabId : sessionStorage.tabId = randomString(8);
 
 
 function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
@@ -54,6 +71,7 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
     
     const chatTextarea = document.createElement('textarea');
     chatTextarea.id = 'chatTextarea';
+    chatTextarea.autofocus = true;
     controlPane.appendChild(chatTextarea);
 
     appEle.appendChild(chatPane);
@@ -123,6 +141,7 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
     textP.innerText = message;
     innerDiv.classList.add('message');
     innerDiv.classList.add(self ? 'messageOurs' : 'messageTheirs');
+    innerDiv.style.backgroundColor = colorOf(clientId);
     messagePane.prepend(outerDiv);
     return outerDiv;
   }
