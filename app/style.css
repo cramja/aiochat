@@ -34,12 +34,11 @@ body {
 }
 
 .message {
-  overflow-x: hidden;
-  max-width: 80%;
   padding: 8px;
   border-radius: 15px;
   display: inline-block;
   margin: 0px;
+  overflow-wrap: anywhere;
 }
 
 .message > p {
@@ -48,11 +47,13 @@ body {
 
 .messageOurs {
   background-color: lightblue;
+  margin-right: 80px;
 }
 
 .messageTheirs {
   float: right;
   background-color: lightgray;
+  margin-left: 80px;
 }
 
 .messageMeta {

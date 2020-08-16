@@ -68,7 +68,7 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
 
   this.onWsOpen = () => {
     log(`connected after ${this.wsOpenAttempt} attempts`);
-    this.sendWsMessage({'type': 'open'});
+    this.sendWsMessage({type: 'open', clientId: this.clientId});
     while(this.queue.length > 0) {
       webSocket.send(this.queue[0]);
       this.queue = queue.slice(1);
@@ -105,9 +105,10 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
     }
   }
 
-  this.createMessageElement = ({cid, text}) => {
-    const self = this.clientId === cid;
+  this.createMessageElement = ({clientId, message}) => {
+    const self = this.clientId === clientId;
     let outerDiv = document.createElement('div');
+    outerDiv.classList.add("message");
     let innerDiv = document.createElement('div');
     let textP = document.createElement('p');
 
@@ -117,9 +118,9 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
       let metaP = document.createElement('p');
       innerDiv.appendChild(metaP);
       metaP.classList.add('messageMeta');
-      metaP.innerText = cid;
+      metaP.innerText = clientId;
     }
-    textP.innerText = text;
+    textP.innerText = message;
     innerDiv.classList.add('message');
     innerDiv.classList.add(self ? 'messageOurs' : 'messageTheirs');
     messagePane.prepend(outerDiv);
@@ -129,9 +130,9 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
   this.onWsMessage = () => {
     try {
       let message = JSON.parse(event.data);
-      switch (message.type) {
-        case 'create_message': {
-          let outerDiv = this.createMessageElement(message);
+      switch (message.kind) {
+        case 'MessageEvent': {
+          let outerDiv = this.createMessageElement({clientId: message.client_id, message: message.message});
           outerDiv.scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
           break;
         }
@@ -164,8 +165,11 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
   chatTextarea.addEventListener("keyup", event => {
     if (event.key == "Enter" && !event.shiftKey) {
       let val = chatTextarea.value;
-      if (val.startsWith("\\")) {
+      if (/\\\w+(\w+\s*)*/.test(val)) {
         args = val.substring(1).trim().split(/\s+/);
+        if (args[0] === 'clear') {
+          document.querySelectorAll(".message").forEach(e => e.parentNode.removeChild(e));
+        }
         this.sendWsMessage({type: 'execute_command', args});
       } else {
         this.sendWsMessage({type: 'create_message', text: val.trim()});
@@ -180,7 +184,7 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
       .then(r => {
         let outerDiv;
         for (message of r) {
-          outerDiv = this.createMessageElement({text: message.value, cid: message.client_id});
+          outerDiv = this.createMessageElement({message: message.value, clientId: message.client_id});
         }
         outerDiv.scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
       }).finally(() => this.openWs(this.wsOpenAttempt)());

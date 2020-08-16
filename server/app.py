@@ -9,8 +9,11 @@ from aiohttp import web
 import asyncpg
 import uvloop
 
+from bots import HistoryBot
+from bots import TranslatorBot
 from chat import init_app
 from db import migrate
+from dispatch import Dispatcher
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -29,6 +32,7 @@ async def create_pgengine(app):
     )
     await migrate(app['pgpool'])
 
+
 async def dispose_pgengine(app):
     app['pg_engine'].close()
     await app['pg_engine'].wait_closed()
@@ -38,6 +42,19 @@ def setup_db(app):
     app.on_startup.append(create_pgengine)
     app.on_cleanup.append(dispose_pgengine)
 
+def setup_bots(app):
+    async def create_history_bot(app):
+        dispatcher = app['dispatcher']
+        bot = HistoryBot(app['pgpool'])
+        bot.init(dispatcher)
+
+    async def create_translator_bot(app):
+        dispatcher = app['dispatcher']
+        bot = TranslatorBot()
+        bot.init(dispatcher)
+
+    app.on_startup.append(create_history_bot)
+    app.on_startup.append(create_translator_bot)
 
 def setup_routes(app):
     app.router.add_get('/', get_index)
@@ -59,10 +76,21 @@ def setup_config(app):
     app['config'] = cfg
 
 
+async def start_dispatcher(app):
+    app['dispatcher'].start()
+
+def setup_dispatch(app):
+    dispatcher = Dispatcher()
+    app['dispatcher'] = dispatcher
+    app.on_startup.append(start_dispatcher)
+
+
 app = web.Application()
 setup_config(app)
 setup_routes(app)
 setup_db(app)
+setup_dispatch(app)
+setup_bots(app)
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ python -mvirtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
+export AIO_CONFIG=`pwd`/config-local.json
 cd server
 adev runserver
 ```
