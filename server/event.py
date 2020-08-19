@@ -46,16 +46,17 @@ class WsMessageEvent(MessageEvent):
 @dataclass
 class IntentEvent(Event):
     message: str
-    intent: str
+    # target: str
+    action: str
     args: list
     kwargs: dict
 
     @classmethod
     def fromMessage(cls, event: MessageEvent) -> Optional['IntentEvent']:
         message = event.message.strip()
-        parts = message.split()
-        if len(parts) == 0 or not parts[0].isupper():
+        if not message.startswith('.'):
             return None
+        parts = message.split()
         args = []
         kwargs = {}
         for arg in parts[1:]:
@@ -64,7 +65,7 @@ class IntentEvent(Event):
                 kwargs[kv[0]] = kv[1]
             else:
                 args.append(arg)
-        return cls(str(uuid4()), time_m(), event.message, event.client_id, parts[0], args, kwargs)
+        return cls(str(uuid4()), time_m(), event.message, event.client_id, parts[0][1:], args, kwargs)
 
 
 @dataclass

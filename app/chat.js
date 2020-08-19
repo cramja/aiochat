@@ -54,7 +54,7 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
     chatPane.id = 'chatPane';
     
     const header = document.createElement('h1');
-    header.innerText = 'Chat App';
+    header.innerText = 'ChatZeug';
     chatPane.appendChild(header);
     
     const messagePane = document.createElement('div');
@@ -188,8 +188,9 @@ function ChatApp({host='ws://localhost:8000', debug=true, clientId=null}={}) {
     }
   };
 
-  chatTextarea.addEventListener("keyup", event => {
+  chatTextarea.addEventListener("keypress", event => {
     if (event.key == "Enter" && !event.shiftKey) {
+      event.preventDefault();
       let val = chatTextarea.value;
       if (/\\\w+(\w+\s*)*/.test(val)) {
         args = val.substring(1).trim().split(/\s+/);

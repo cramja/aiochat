@@ -65,11 +65,9 @@ class Dispatcher:
         names = list(_event_manifest.get(e.kind, []))
         names.extend(_event_manifest.get('*', []))
         if isinstance(e, IntentEvent):
-            names.extend(_intent_manifest.get(e.intent, []))
-
+            names.extend(_intent_manifest.get(e.action, []))
 
         coroutines = []
-
         _names = []
         for bot in self._bots:
             instance_name = type(bot).__name__ + "."
@@ -81,7 +79,7 @@ class Dispatcher:
                     try:
                         coroutines.append(method(e))
                     except:
-                        print(f'failed to publish {e} to {name}')
+                        LOG.error(f'failed to publish {e} to {name}')
 
         LOG.debug(f'event dispatch: {e}')
         LOG.debug(f'matched: {names}')
@@ -94,5 +92,5 @@ class Dispatcher:
             if isinstance(result, Event):
                 await self.submit(result)
             elif isinstance(result, Exception):
-                LOG.warning(f'error in gather, {_names[idx]} {e}')
+                LOG.warning(f'error in gather, {_names[idx]}\n{e}\n{result}')
 

@@ -11,6 +11,7 @@ import uvloop
 
 from bots import HistoryBot
 from bots import TranslatorBot
+from bots import SystemBot
 from chat import init_app
 from db import migrate
 from dispatch import Dispatcher
@@ -23,13 +24,7 @@ async def get_index(request):
 
 async def create_pgengine(app):
     config = app['config']
-    app['pgpool'] = await asyncpg.create_pool(
-        user=config['db_user'],
-        database=config['db_name'],
-        host=config['db_host'],
-        port=config['db_port'],
-        password=config['db_password']
-    )
+    app['pgpool'] = await asyncpg.create_pool(**config['db'])
     await migrate(app['pgpool'])
 
 
@@ -53,8 +48,14 @@ def setup_bots(app):
         bot = TranslatorBot()
         bot.init(dispatcher)
 
+    async def create_system_bot(app):
+        dispatcher = app['dispatcher']
+        bot = SystemBot(app)
+        bot.init(dispatcher)
+
     app.on_startup.append(create_history_bot)
     app.on_startup.append(create_translator_bot)
+    app.on_startup.append(create_system_bot)
 
 def setup_routes(app):
     app.router.add_get('/', get_index)

@@ -1,7 +1,41 @@
 import logging
+from dataclasses import dataclass
+
 
 LOG = logging.Logger(__name__)
 
+
+class Column:
+    def __init__(self, name = None):
+        self.name = name
+
+
+class Meta(type):
+
+    def __new__(cls, name, bases, dct):
+        clz = super().__new__(cls, name, bases, dct)
+        cols = []
+        for k,v in dct.items():
+            if k.startswith('_') or not (isinstance(v, Column) or v == Column):
+                continue
+            cols.append(k)
+        def init(self, *args, **kwargs):
+            for k,v in kwargs.items():
+                if k in cols:
+                    setattr(self, k, v)
+        clz.__init__ = init
+        return clz
+
+
+class Table(metaclass=Meta):
+    pass
+
+
+class IntentData(Table):
+    id = Column
+    create_time = Column
+    client_id = Column
+    value = Column
 
 
 async def migrate(pgpool):
@@ -55,6 +89,18 @@ async def init_tables(conn):
     ''')
 
 
+async def add_intent_data_table(conn):
+    await conn.execute('''
+    CREATE TABLE intent_data(
+        id              SERIAL PRIMARY KEY,
+        create_time     TIMESTAMP NOT NULL DEFAULT now(),
+        intent          VARCHAR NOT NULL,
+        value           VARCHAR NOT NULL
+    );
+    ''')
+
+
 _MIGRATIONS = [
-    (0, 'init', init_tables)
+    (0, 'init', init_tables),
+    (1, 'add intent data table', add_intent_data_table),
 ]
