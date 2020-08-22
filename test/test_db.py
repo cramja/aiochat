@@ -1,8 +1,9 @@
-import os
-import json
-import pytest
 import asyncio
+import datetime
+import json
 import logging
+import os
+import pytest
 from pytest import fixture
 
 import asyncpg
@@ -16,8 +17,10 @@ pytestmark = pytest.mark.asyncio
 
 
 class TData(metaclass=Meta):
-    id = Column
-    data = Column
+    id          = Column(primary_key=True)
+    created     = Column(name='create_time')
+    updated     = Column(name='update_time')
+    data        = Column
 
 
 @fixture
@@ -30,18 +33,31 @@ def config():
 @fixture
 async def conn(config):
     conn = await asyncpg.connect(**config['db'])
+    await conn.execute('DROP TABLE IF EXISTS t_data')
+    await conn.execute('''CREATE TABLE t_data (id SERIAL PRIMARY KEY, 
+                            create_time TIMESTAMP DEFAULT now(), 
+                            update_time TIMESTAMP DEFAULT now(), 
+                            data VARCHAR)
+                        ''')
+
     yield conn
+
+    await conn.execute('DROP TABLE t_data')
     await asyncio.wait_for(conn.close(), timeout=1.0)
     
 
-async def test_query_records(conn):
-    await conn.execute('DROP TABLE IF EXISTS t_data')
-    await conn.execute('CREATE TABLE t_data (id SERIAL PRIMARY KEY, data VARCHAR)')
-
+async def test_create_records(conn):
     saved = await TData.create(conn, data='hello') 
     first = (await TData.all(conn))[0]
     assert saved.data == 'hello'
     assert first.data == 'hello'
     assert saved.id == first.id
+    assert type(saved.created) == datetime.datetime
 
-    await conn.execute('DROP TABLE t_data')
+
+async def test_update_records(conn):
+    saved = await TData.create(conn, data='hello') 
+    now = datetime.datetime.now()
+    updated = await saved.update(conn, data='goodbye', updated=now)
+    assert updated.data == 'goodbye'
+    assert updated.updated == now

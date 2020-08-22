@@ -41,46 +41,63 @@ def to_snake(str):
                else i for i in str]).lstrip('_') 
 
 
+class Column:
+    def __init__(self, name=None, primary_key=False, **kwargs):
+        self.primary_key = primary_key
+        self.name = name
+        self.attr = name if not 'attr' in kwargs else kwargs['attr']
+
+
 class TableMeta:
     def __init__(self, name, cols):
         self.name = name
         self.cols = cols
-        self.col_names = list(map(lambda x: x.name, cols))
-
-
-class Column:
-    def __init__(self, primary_key=False, name=None):
-        self.primary_key = primary_key
-        self.name = name
+        self.col_map = {c.attr: c for c in self.cols}
+        self.name_attr = {c.name: c.attr for c in self.cols}
+        pkl = list(filter(lambda col: col.primary_key, cols))
+        self.pk = pkl[0] if pkl else None
 
 
 def table_init(table_meta):
     def init(self, *args, **kwargs):
-        unused = list(table_meta.col_names)
-        for k,v in kwargs.items():
-            if k in unused:
-                setattr(self, k, v)
-                unused.remove(k)
-        for k in unused:
-            setattr(self, None)
+        unused_attr = list(table_meta.name_attr.values())
+        for k, v in kwargs.items():
+            attr = table_meta.name_attr.get(k)
+            if attr:
+                setattr(self, attr, v)
+                unused_attr.remove(attr)
+        for k in unused_attr:
+            setattr(self, k, None)
     return init
 
-def table_from_record(table_meta):
-    def from_record(self, *args, **kwargs):
-        for k,v in kwargs.items():
-            if k in table_meta.col_names:
-                setattr(self, k, v)
-        return self
-    return from_record
 
 def table_create(table_meta):
     async def create(cls, pg: asyncpg.Connection, timeout=None, **kwargs):
-        given_cols = [given_key for given_key in kwargs.keys() if given_key in table_meta.col_names]
+        given_cols = [given_key for given_key in kwargs.keys() if given_key in table_meta.col_map]
         stmt = f'INSERT INTO {table_meta.name} ({",".join(given_cols)}) VALUES ($1{",".join(["${{i}}" for i in range(2, len(given_cols))])}) RETURNING *'
         LOG.debug('statement: %s', stmt)
         res = await pg.fetchrow(stmt, *[kwargs[k] for k in given_cols], timeout=timeout)
         return cls(**res)
     return create
+
+
+def table_update(table_meta):
+    async def update(self, pg: asyncpg.Connection, timeout=None, **kwargs):
+        set_sql = []
+        var_list = []
+        for k,v in kwargs.items():
+            if k in table_meta.col_map:
+                col = table_meta.col_map.get(k)
+                set_sql.append(f'{col.name}=${len(var_list) + 1}')
+                var_list.append(v)
+
+        stmt = f'UPDATE {table_meta.name} SET {", ".join(set_sql)} WHERE {table_meta.pk.name}={getattr(self, table_meta.pk.attr)} RETURNING *'
+        LOG.debug('statement: %s', stmt)
+        res = await pg.fetchrow(stmt, *var_list, timeout=timeout)
+        self.__init__(**res)  # why not?
+        return self
+    return update
+
 
 def table_all(table_meta):
     async def t_all(clz, pg: asyncpg.Connection):
@@ -91,8 +108,8 @@ def table_all(table_meta):
 def table_repr(table_meta):
     def trepr(self):
         rv = [table_meta.name, "("]
-        LOG.debug(table_meta.col_names)
-        for k in table_meta.col_names:
+        LOG.debug(table_meta.col_map)
+        for k,v in table_meta.col_map.items():
             rv.append(k)
             rv.append("=")
             rv.append(repr(getattr(self, k)))
@@ -112,9 +129,10 @@ class Meta(type):
             if k.startswith('_') or not (isinstance(v, Column) or v == Column):
                 continue
             if not isinstance(v, Column):
-                v = v(name=k)
+                v = v(name=k, attr=k)
             if not v.name:
                 v.name = k
+            v.attr = k
             cols.append(v)
         
         # TODO: class name
@@ -122,8 +140,8 @@ class Meta(type):
         clz.table_meta = table_meta
     
         clz.__init__        = table_init(table_meta)
-        clz.from_record     = table_from_record(table_meta)
         clz.create          = classmethod(table_create(table_meta))
+        clz.update          = table_update(table_meta)
         clz.all             = classmethod(table_all(table_meta))
         clz.__repr__        = table_repr(table_meta)
 
