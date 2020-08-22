@@ -5,38 +5,6 @@ from dataclasses import dataclass
 LOG = logging.Logger(__name__)
 
 
-class Column:
-    def __init__(self, name = None):
-        self.name = name
-
-
-class Meta(type):
-
-    def __new__(cls, name, bases, dct):
-        clz = super().__new__(cls, name, bases, dct)
-        cols = []
-        for k,v in dct.items():
-            if k.startswith('_') or not (isinstance(v, Column) or v == Column):
-                continue
-            cols.append(k)
-        def init(self, *args, **kwargs):
-            for k,v in kwargs.items():
-                if k in cols:
-                    setattr(self, k, v)
-        clz.__init__ = init
-        return clz
-
-
-class Table(metaclass=Meta):
-    pass
-
-
-class IntentData(Table):
-    id = Column
-    create_time = Column
-    client_id = Column
-    value = Column
-
 
 async def migrate(pgpool):
     current_version = _MIGRATIONS[-1][0]
