@@ -62,7 +62,7 @@ async def add_intent_data_table(conn):
     CREATE TABLE intent_data(
         id              SERIAL PRIMARY KEY,
         create_time     TIMESTAMP NOT NULL DEFAULT now(),
-        intent          VARCHAR NOT NULL,
+        name            VARCHAR NOT NULL,
         value           VARCHAR NOT NULL
     );
     ''')

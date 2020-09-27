@@ -13,7 +13,7 @@ from bots import HistoryBot
 from bots import TranslatorBot
 from bots import SystemBot
 from chat import init_app
-from db import migrate
+from db.migration import migrate
 from dispatch import Dispatcher
 
 logging.basicConfig(level=logging.DEBUG)

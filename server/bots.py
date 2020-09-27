@@ -6,6 +6,8 @@ from asyncio import queues
 from event import MessageEvent
 from event import IntentEvent
 from dispatch import subscribe
+from db.models import IntentDataEntity
+from db.models import MessageEntity
 
 
 LOG = logging.getLogger(__name__)
@@ -33,22 +35,21 @@ class Bot(abc.ABC):
 class HistoryBot(Bot):
     def __init__(self, pgpool):
         self.client_id = 'HistoryBot'
-        self._pgpool = pgpool
-    
+        self.pgp = pgpool
+
+
     @subscribe(kind="MessageEvent")
     async def on_message(self, event: MessageEvent):
-        async with self._pgpool.acquire() as conn:
-            await conn.execute(
-                'INSERT INTO messages(client_id, value) VALUES ($1, $2)',
-                event.client_id, 
-                event.message
-            )
+        async with self.pgp.acquire() as conn:
+            await MessageEntity.create(conn, client_id=event.client_id, value=event.message)
+
     
     @subscribe(intent="clearHistory")
     async def on_start(self, event):
-        async with self._pgpool.acquire() as conn:
+        async with self.pgp.acquire() as conn:
             await conn.execute('DELETE FROM messages WHERE TRUE;')
         await self._dispatch.submit(MessageEvent.of(self.client_id, 'cleared'))
+
 
 class TranslatorBot(Bot):
     def __init__(self):
@@ -82,27 +83,30 @@ class SystemBot(Bot):
             await self._dispatch.submit(MessageEvent.of(self.client_id, f"unknown start arg: {event.args}"))
 
 
+    @subscribe(intent="listOptions")
+    async def list_options(self, event):
+        self._dispatch.
+
+
 class IntentRecorderBot(Bot):
     def __init__(self, app):
         self.client_id = 'IntentRecorderBot'
-        self._pgpool = app['pgpool']
+        self.pgp = app['pgpool']
         self.mode = None
         self.last_message_id = None
     
     @subscribe(kind='MessageEvent')
     async def on_message(self, event):
         if self.mode is not None:
-            async with self._pgpool.acquire() as conn:
-                await conn.execute(
-                    'INSERT INTO intent_data(intent, value) VALUES ($1, $2)',
-                    self.mode,
-                    event.message
-                )
+            async with self.pgp.acquire() as conn:
+                await IntentDataEntity.create(conn, name=self.mode, value=event.message)
+
     
     @subscribe(intent='exit')
     async def on_set_intent(self, event):
         await self._dispatch.submit(MessageEvent.of(self.client_id, 'exiting'))
         self.teardown()
+
 
     @subscribe(intent='setIntent')
     async def on_set_intent(self, event):
@@ -114,18 +118,18 @@ class IntentRecorderBot(Bot):
             self.mode = intent_name
             await self._dispatch.submit(MessageEvent.of(self.client_id, f'using intent "{intent_name}"'))
 
+
     @subscribe(intent='listIntents')
     async def on_list_intent(self, event):
-        async with self._pgpool.acquire() as conn:
-            records = await conn.execute('SELECT * FROM intent_data ORDER BY intent, create_time')
-        rv = []
-        for record in records:
-            rv.append(f"{record['id']}: {record['intent']} => {record['value']}")
-        await self._dispatch.submit(MessageEvent.of(self.client_id, "\n".join(rv)))
-    
+        async with self.pgp.acquire() as conn:
+            records = [repr(r) for r in await IntentDataEntity.all()]
+        await self._dispatch.submit(MessageEvent.of(self.client_id, "\n".join(records)))
+
+
     @subscribe(intent='getState')
     async def on_get_state(self, event):
         await self._dispatch.submit(MessageEvent.of(self.client_id, f'mode is "{self.mode}"'))
+
 
 
 class QuestionBot(Bot):

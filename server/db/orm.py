@@ -119,33 +119,33 @@ def table_repr(table_meta):
         return "".join(rv)
     return trepr
 
-class Meta(type):
+    class Meta(type):
 
-    def __new__(cls, name, bases, dct):
-        clz = super().__new__(cls, name, bases, dct)
+        def __new__(cls, name, bases, dct):
+            clz = super().__new__(cls, name, bases, dct)
 
-        cols = []
-        for k, v in dct.items():
-            if k.startswith('_') or not (isinstance(v, Column) or v == Column):
-                continue
-            if not isinstance(v, Column):
-                v = v(name=k, attr=k)
-            if not v.name:
-                v.name = k
-            v.attr = k
-            cols.append(v)
+            cols = []
+            for k, v in dct.items():
+                if k.startswith('_') or not (isinstance(v, Column) or v == Column):
+                    continue
+                if not isinstance(v, Column):
+                    v = v(name=k, attr=k)
+                if not v.name:
+                    v.name = k
+                v.attr = k
+                cols.append(v)
+            
+            # TODO: class name
+            table_meta = TableMeta(to_snake(name), cols)
+            clz.table_meta = table_meta
         
-        # TODO: class name
-        table_meta = TableMeta(to_snake(name), cols)
-        clz.table_meta = table_meta
-    
-        clz.__init__        = table_init(table_meta)
-        clz.create          = classmethod(table_create(table_meta))
-        clz.update          = table_update(table_meta)
-        clz.all             = classmethod(table_all(table_meta))
-        clz.__repr__        = table_repr(table_meta)
+            clz.__init__        = table_init(table_meta)
+            clz.create          = classmethod(table_create(table_meta))
+            clz.update          = table_update(table_meta)
+            clz.all             = classmethod(table_all(table_meta))
+            clz.__repr__        = table_repr(table_meta)
 
-        return clz
+            return clz
 
 
 class Table(metaclass=Meta):
