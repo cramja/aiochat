@@ -47,7 +47,7 @@ class HistoryBot(Bot):
     @subscribe(intent="clearHistory")
     async def on_start(self, event):
         async with self.pgp.acquire() as conn:
-            await conn.execute('DELETE FROM messages WHERE TRUE;')
+            await conn.execute('DELETE FROM message WHERE TRUE;')
         await self._dispatch.submit(MessageEvent.of(self.client_id, 'cleared'))
 
 
@@ -83,9 +83,15 @@ class SystemBot(Bot):
             await self._dispatch.submit(MessageEvent.of(self.client_id, f"unknown start arg: {event.args}"))
 
 
-    @subscribe(intent="listOptions")
-    async def list_options(self, event):
-        self._dispatch.
+class EchoBot(Bot):
+    def __init__(self, app):
+        self.client_id = 'EchoBot'
+        self.pgp = app['pgpool']
+
+    @subscribe(kind='MessageEvent')
+    async def on_message(self, event):
+        if event.client_id != self.client_id:
+            await self._dispatch.submit(MessageEvent.of(self.client_id, event.message))
 
 
 class IntentRecorderBot(Bot):
@@ -103,7 +109,7 @@ class IntentRecorderBot(Bot):
 
     
     @subscribe(intent='exit')
-    async def on_set_intent(self, event):
+    async def on_exit(self, event):
         await self._dispatch.submit(MessageEvent.of(self.client_id, 'exiting'))
         self.teardown()
 

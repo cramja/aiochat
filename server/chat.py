@@ -29,7 +29,7 @@ LOG = logging.getLogger(__name__)
 async def get_message_history(request):
     pgpool = request.app['pgpool']
     async with pgpool.acquire() as conn:
-        records = await conn.fetch('SELECT create_time, value, client_id FROM messages')
+        records = await conn.fetch('SELECT create_time, value, client_id FROM message')
     return web.json_response(data=[to_dict(r) for r in records])
 
 

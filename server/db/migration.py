@@ -47,28 +47,25 @@ async def init_migrator(conn):
 
 async def init_tables(conn):
     await conn.execute('''
-    CREATE TABLE messages (
-        id              SERIAL PRIMARY KEY,
-        create_time     TIMESTAMP NOT NULL DEFAULT now(),
-        client_id       VARCHAR NOT NULL,
-        value           VARCHAR NOT NULL
-    );
-    CREATE INDEX messages_create_time_idx ON messages(create_time);
+        CREATE TABLE message (
+            id              SERIAL PRIMARY KEY,
+            create_time     TIMESTAMP NOT NULL DEFAULT now(),
+            client_id       VARCHAR NOT NULL,
+            value           VARCHAR NOT NULL
+        );
+        CREATE INDEX message_create_time_idx ON message(create_time);
     ''')
 
-
-async def add_intent_data_table(conn):
     await conn.execute('''
-    CREATE TABLE intent_data(
-        id              SERIAL PRIMARY KEY,
-        create_time     TIMESTAMP NOT NULL DEFAULT now(),
-        name            VARCHAR NOT NULL,
-        value           VARCHAR NOT NULL
-    );
+        CREATE TABLE intent_data (
+            id              SERIAL PRIMARY KEY,
+            create_time     TIMESTAMP NOT NULL DEFAULT now(),
+            name            VARCHAR NOT NULL,
+            value           VARCHAR NOT NULL
+        );
     ''')
 
 
 _MIGRATIONS = [
-    (0, 'init', init_tables),
-    (1, 'add intent data table', add_intent_data_table),
+    (0, 'init', init_tables)
 ]

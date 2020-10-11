@@ -74,7 +74,7 @@ def table_init(table_meta):
 def table_create(table_meta):
     async def create(cls, pg: asyncpg.Connection, timeout=None, **kwargs):
         given_cols = [given_key for given_key in kwargs.keys() if given_key in table_meta.col_map]
-        stmt = f'INSERT INTO {table_meta.name} ({",".join(given_cols)}) VALUES ($1{",".join(["${{i}}" for i in range(2, len(given_cols))])}) RETURNING *'
+        stmt = f'INSERT INTO {table_meta.name} ({",".join(given_cols)}) VALUES ($1{"".join([f",${i}" for i in range(2, len(given_cols) + 1)])}) RETURNING *'
         LOG.debug('statement: %s', stmt)
         res = await pg.fetchrow(stmt, *[kwargs[k] for k in given_cols], timeout=timeout)
         return cls(**res)
@@ -119,33 +119,37 @@ def table_repr(table_meta):
         return "".join(rv)
     return trepr
 
-    class Meta(type):
 
-        def __new__(cls, name, bases, dct):
-            clz = super().__new__(cls, name, bases, dct)
+class Meta(type):
 
-            cols = []
-            for k, v in dct.items():
-                if k.startswith('_') or not (isinstance(v, Column) or v == Column):
-                    continue
-                if not isinstance(v, Column):
-                    v = v(name=k, attr=k)
-                if not v.name:
-                    v.name = k
-                v.attr = k
-                cols.append(v)
-            
-            # TODO: class name
-            table_meta = TableMeta(to_snake(name), cols)
-            clz.table_meta = table_meta
+    def __new__(cls, name, bases, dct):
+        clz = super().__new__(cls, name, bases, dct)
+
+        cols = []
+        for k, v in dct.items():
+            if k.startswith('_') or not (isinstance(v, Column) or v == Column):
+                continue
+            if not isinstance(v, Column):
+                v = v(name=k, attr=k)
+            if not v.name:
+                v.name = k
+            v.attr = k
+            cols.append(v)
         
-            clz.__init__        = table_init(table_meta)
-            clz.create          = classmethod(table_create(table_meta))
-            clz.update          = table_update(table_meta)
-            clz.all             = classmethod(table_all(table_meta))
-            clz.__repr__        = table_repr(table_meta)
+        # TODO: class name
+        table_name = to_snake(name)
+        table_name = table_name[:-7] if table_name.endswith("_entity") else table_name
 
-            return clz
+        table_meta = TableMeta(table_name, cols)
+        clz.table_meta = table_meta
+    
+        clz.__init__        = table_init(table_meta)
+        clz.create          = classmethod(table_create(table_meta))
+        clz.update          = table_update(table_meta)
+        clz.all             = classmethod(table_all(table_meta))
+        clz.__repr__        = table_repr(table_meta)
+
+        return clz
 
 
 class Table(metaclass=Meta):

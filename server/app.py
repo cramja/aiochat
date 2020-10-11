@@ -12,6 +12,7 @@ import uvloop
 from bots import HistoryBot
 from bots import TranslatorBot
 from bots import SystemBot
+from bots import EchoBot
 from chat import init_app
 from db.migration import migrate
 from dispatch import Dispatcher
@@ -53,9 +54,15 @@ def setup_bots(app):
         bot = SystemBot(app)
         bot.init(dispatcher)
 
+    async def create_echo_bot(app):
+        dispatcher = app['dispatcher']
+        bot = EchoBot(app)
+        bot.init(dispatcher)
+
     app.on_startup.append(create_history_bot)
     app.on_startup.append(create_translator_bot)
     app.on_startup.append(create_system_bot)
+    app.on_startup.append(create_echo_bot)
 
 def setup_routes(app):
     app.router.add_get('/', get_index)
