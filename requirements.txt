@@ -36,7 +36,7 @@ rope==0.17.0
 six==1.14.0
 toml==0.10.1
 typing-extensions==3.7.4.2
-urllib3==1.25.8
+urllib3==1.26.5
 uvloop==0.14.0
 watchgod==0.6
 webencodings==0.5.1
